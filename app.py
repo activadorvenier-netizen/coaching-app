@@ -45,49 +45,33 @@ HOJAS = {
 # =========================================================
 
 def conectar_gsheets():
+    """Conecta a Google Sheets usando Service Account"""
     try:
         scope = [
             "https://spreadsheets.google.com/feeds",
             "https://www.googleapis.com/auth/drive"
         ]
         
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        creds_path = os.path.join(script_dir, "credentials.json")
+        # SOLO variables de entorno - NO usa st.secrets
+        creds_dict = {
+            "type": os.getenv("GCP_TYPE", "service_account"),
+            "project_id": os.getenv("GCP_PROJECT_ID"),
+            "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID"),
+            "private_key": os.getenv("GCP_PRIVATE_KEY"),
+            "client_email": os.getenv("GCP_CLIENT_EMAIL"),
+            "client_id": os.getenv("GCP_CLIENT_ID"),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": os.getenv("GCP_CLIENT_X509_CERT_URL")
+        }
         
-        if os.path.exists(creds_path):
-            creds = ServiceAccountCredentials.from_json_keyfile_name(creds_path, scope)
-        else:
-            # Intentar desde st.secrets
-            try:
-                creds_dict = {
-                    "type": st.secrets["gcp"]["type"],
-                    "project_id": st.secrets["gcp"]["project_id"],
-                    "private_key_id": st.secrets["gcp"]["private_key_id"],
-                    "private_key": st.secrets["gcp"]["private_key"],
-                    "client_email": st.secrets["gcp"]["client_email"],
-                    "client_id": st.secrets["gcp"]["client_id"],
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "client_x509_cert_url": st.secrets["gcp"]["client_x509_cert_url"]
-                }
-                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-            except:
-                # Fallback a variables de entorno
-                creds_dict = {
-                    "type": os.getenv("GCP_TYPE"),
-                    "project_id": os.getenv("GCP_PROJECT_ID"),
-                    "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID"),
-                    "private_key": os.getenv("GCP_PRIVATE_KEY"),
-                    "client_email": os.getenv("GCP_CLIENT_EMAIL"),
-                    "client_id": os.getenv("GCP_CLIENT_ID"),
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                    "client_x509_cert_url": os.getenv("GCP_CLIENT_X509_CERT_URL")
-                }
-                creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        # Verificar que todas las credenciales estén presentes
+        if not creds_dict["private_key"]:
+            st.error("❌ Error: No se encontraron las credenciales de Google Sheets en las variables de entorno")
+            return None
         
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         return client.open_by_key(SHEET_ID)
     except Exception as e:
