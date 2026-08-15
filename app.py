@@ -52,30 +52,36 @@ def conectar_gsheets():
             "https://www.googleapis.com/auth/drive"
         ]
         
-        # SOLO variables de entorno - NO usa st.secrets
+        # USAR SOLO VARIABLES DE ENTORNO
+        import json
+        
+        # Construir el diccionario con las variables de entorno
         creds_dict = {
             "type": os.getenv("GCP_TYPE", "service_account"),
-            "project_id": os.getenv("GCP_PROJECT_ID"),
-            "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID"),
-            "private_key": os.getenv("GCP_PRIVATE_KEY"),
-            "client_email": os.getenv("GCP_CLIENT_EMAIL"),
-            "client_id": os.getenv("GCP_CLIENT_ID"),
+            "project_id": os.getenv("GCP_PROJECT_ID", ""),
+            "private_key_id": os.getenv("GCP_PRIVATE_KEY_ID", ""),
+            "private_key": os.getenv("GCP_PRIVATE_KEY", "").replace("\\n", "\n"),
+            "client_email": os.getenv("GCP_CLIENT_EMAIL", ""),
+            "client_id": os.getenv("GCP_CLIENT_ID", ""),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": os.getenv("GCP_CLIENT_X509_CERT_URL")
+            "client_x509_cert_url": os.getenv("GCP_CLIENT_X509_CERT_URL", "")
         }
         
-        # Verificar que todas las credenciales estén presentes
-        if not creds_dict["private_key"]:
-            st.error("❌ Error: No se encontraron las credenciales de Google Sheets en las variables de entorno")
+        # Verificar que la private_key no esté vacía
+        if not creds_dict["private_key"] or not creds_dict["client_email"]:
+            st.error("❌ Error: Credenciales incompletas. Verifica las variables de entorno en Render.")
+            st.info("Variables requeridas: GCP_PRIVATE_KEY, GCP_CLIENT_EMAIL, GCP_PROJECT_ID")
             return None
         
+        # Crear credenciales
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
         client = gspread.authorize(creds)
         return client.open_by_key(SHEET_ID)
     except Exception as e:
         st.error(f"Error conectando a Google Sheets: {e}")
+        st.info("Verifica que las variables de entorno en Render estén correctamente configuradas.")
         return None
 
 def leer_hoja(hoja_nombre):
