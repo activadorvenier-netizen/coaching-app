@@ -994,17 +994,21 @@ elif seleccion == "📊 Dashboard":
     # USAR DATOS SIN FILTRAR PARA LOS GRÁFICOS DE ABAJO
     df_evol_base = df_respuestas.copy()
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         auditados_evol = ["Todos"] + sorted(df_evol_base["Auditado"].dropna().unique().tolist())
         auditado_evol = st.selectbox("👤 Auditado", auditados_evol, key="evol_auditado")
 
     with col2:
+        auditores_evol = ["Todos"] + sorted(df_evol_base["Auditor"].dropna().unique().tolist())
+        auditor_evol = st.selectbox("👤 Auditor", auditores_evol, key="evol_auditor")
+
+    with col3:
         pilares_evol = ["Todos"] + sorted(df_evol_base["Pilar"].dropna().unique().tolist())
         pilar_evol = st.selectbox("🏆 Pilar", pilares_evol, key="evol_pilar")
 
-    with col3:
+    with col4:
         coachings_disponibles = sorted(df_evol_base["Bimestre"].dropna().unique().tolist())
         coachings_nombres = [obtener_nombre_bimestre(b) for b in coachings_disponibles]
         coaching_seleccionado = st.selectbox(
@@ -1026,6 +1030,9 @@ elif seleccion == "📊 Dashboard":
 
     # APLICAR FILTROS DE LA EVOLUCIÓN (NO LOS SUPERIORES)
     df_evol = df_evol_base.copy()
+
+    if auditor_evol != "Todos":
+            df_evol = df_evol[df_evol["Auditor"] == auditor_evol]
 
     if auditado_evol != "Todos":
         df_evol = df_evol[df_evol["Auditado"] == auditado_evol]
