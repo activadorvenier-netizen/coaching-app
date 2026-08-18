@@ -1094,6 +1094,10 @@ elif seleccion == "📊 Dashboard":
                 if auditado_evol != "Todos":
                     df_coaching_actual_filtrado = df_coaching_actual_filtrado[df_coaching_actual_filtrado["Auditado"] == auditado_evol]
                     df_coaching_anterior_filtrado = df_coaching_anterior_filtrado[df_coaching_anterior_filtrado["Auditado"] == auditado_evol]
+
+                if auditor_evol != "Todos":
+                                    df_coaching_actual_filtrado = df_coaching_actual_filtrado[df_coaching_actual_filtrado["Auditor"] == auditor_evol]
+                                    df_coaching_anterior_filtrado = df_coaching_anterior_filtrado[df_coaching_anterior_filtrado["Auditor"] == auditor_evol]
                 
                 if pilar_evol != "Todos":
                     df_coaching_actual_filtrado = df_coaching_actual_filtrado[df_coaching_actual_filtrado["Pilar"] == pilar_evol]
