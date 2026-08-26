@@ -519,7 +519,7 @@ if seleccion == "Nuevo Coaching":
             
             st.balloons()
             import time
-            time.sleep(2)
+            time.sleep(1)
             st.session_state.form_id += 1
             st.rerun()
         else:

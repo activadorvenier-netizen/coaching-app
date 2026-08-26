@@ -332,7 +332,6 @@ if seleccion == "📝 Nuevo Coaching":
             # Resetear auditado y localidad cuando cambia el auditor
             st.session_state.selected_auditado = ""
             st.session_state.selected_localidad = ""
-            st.rerun()
         
         # Selector de Empresa
         empresa_idx = 0
@@ -713,8 +712,8 @@ if seleccion == "📝 Nuevo Coaching":
                             st.session_state.selected_auditado = ""
                             st.session_state.selected_localidad = ""
                             
-                            time.sleep(2)
-                            st.rerun()
+                            time.sleep(1)
+                            st.experimental_rerun()
                         else:
                             st.error("❌ Error guardando en RESPUESTAS")
     else:
