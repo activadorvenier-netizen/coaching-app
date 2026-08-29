@@ -1376,18 +1376,27 @@ elif seleccion == "🎯 Categorías a Mejorar":
     
     def calcular_score_categoria(auditor, auditado, bimestre, categoria):
         """Calcula el score de una categoría específica para un coaching"""
+        # Filtrar respuestas del coaching específico
         df_filtro = df_respuestas[
             (df_respuestas["Auditor"] == auditor) &
             (df_respuestas["Auditado"] == auditado) &
-            (df_respuestas["Bimestre"] == bimestre) &
-            (df_respuestas[columna_categoria_respuestas] == categoria)
+            (df_respuestas["Bimestre"] == bimestre)
         ]
         
         if df_filtro.empty:
             return None
         
-        total_puntaje = df_filtro["Puntaje Final"].sum()
-        total_maximo = df_filtro["Puntos Máximo"].sum()
+        # Ahora filtrar por categoría (usando la columna correcta)
+        # IMPORTANTE: La columna en RESPUESTAS se llama "Categoría" (sin acento)
+        columna_cat = "Categoría" if "Categoría" in df_filtro.columns else "Categorías"
+        
+        df_categoria = df_filtro[df_filtro[columna_cat] == categoria]
+        
+        if df_categoria.empty:
+            return None
+        
+        total_puntaje = df_categoria["Puntaje Final"].sum()
+        total_maximo = df_categoria["Puntos Máximo"].sum()
         
         if total_maximo == 0:
             return 0
