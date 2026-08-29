@@ -255,12 +255,12 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Botón para recargar datos
+    # Botón para recargar datos - CORREGIDO SIN st.rerun()
     if st.button("🔄 Recargar Datos", use_container_width=True):
         st.cache_data.clear()
-        st.success("✅ Caché limpiada. Recargando página...")
+        st.success("✅ Caché limpiada. La página se recargará automáticamente.")
         time.sleep(1)
-        st.rerun()
+        st.experimental_rerun()
 
     st.markdown("---")
     st.markdown(
@@ -307,7 +307,7 @@ if seleccion == "📝 Nuevo Coaching":
         st.session_state.selected_localidad = ""
 
     # ------------------------------------------------
-    # SELECTORES (FUERA DEL FORMULARIO)
+    # SELECTORES (FUERA DEL FORMULARIO) - SIN st.rerun()
     # ------------------------------------------------
     
     col1, col2 = st.columns(2)
@@ -329,7 +329,6 @@ if seleccion == "📝 Nuevo Coaching":
         
         if auditor != st.session_state.selected_auditor:
             st.session_state.selected_auditor = auditor
-            # Resetear auditado y localidad cuando cambia el auditor
             st.session_state.selected_auditado = ""
             st.session_state.selected_localidad = ""
         
@@ -347,10 +346,8 @@ if seleccion == "📝 Nuevo Coaching":
         
         if empresa != st.session_state.selected_empresa:
             st.session_state.selected_empresa = empresa
-            # Resetear auditado y localidad cuando cambia la empresa
             st.session_state.selected_auditado = ""
             st.session_state.selected_localidad = ""
-            st.rerun()
     
     with col2:
         # Obtener puesto del auditor seleccionado
@@ -382,7 +379,6 @@ if seleccion == "📝 Nuevo Coaching":
         
         if auditado != st.session_state.selected_auditado:
             st.session_state.selected_auditado = auditado
-            st.rerun()
         
         # Obtener localidades disponibles según empresa
         localidades_disponibles = obtener_localidades(
@@ -588,12 +584,11 @@ if seleccion == "📝 Nuevo Coaching":
                             else:
                                 st.warning("⚠️ Error guardando en RESUMEN")
                             
-                                                       # =========================================================
-                            # ACTUALIZAR CONTROL_COACHINGS (VERSIÓN CORREGIDA)
+                            # =========================================================
+                            # ACTUALIZAR CONTROL_COACHINGS
                             # =========================================================
                             
                             try:
-                                # Determinar coaching
                                 bimestre_num = None
                                 mes = fecha.month
                                 if mes in [1, 2]:
@@ -612,14 +607,12 @@ if seleccion == "📝 Nuevo Coaching":
                                 if bimestre_num:
                                     sheet = conectar_gsheets()
                                     if sheet:
-                                        # Obtener o crear la hoja CONTROL_COACHINGS
                                         try:
                                             ws_control = sheet.worksheet("CONTROL_COACHINGS")
                                         except:
                                             ws_control = sheet.add_worksheet("CONTROL_COACHINGS", rows=100, cols=10)
                                             ws_control.update([["Auditado", "Coaching 1", "Coaching 2", "Coaching 3", "Coaching 4", "Coaching 5", "Coaching 6"]])
                                         
-                                        # Buscar el auditado
                                         datos_control = ws_control.get_all_values()
                                         fila_auditado = None
                                         
@@ -628,24 +621,16 @@ if seleccion == "📝 Nuevo Coaching":
                                                 fila_auditado = i + 1
                                                 break
                                         
-                                        # Si no existe, agregar nueva fila
                                         if fila_auditado is None:
                                             nueva_fila = [st.session_state.selected_auditado] + [""] * 6
                                             ws_control.append_row(nueva_fila)
                                             fila_auditado = len(datos_control) + 1
                                         
-                                        # CORREGIDO: Actualizar usando row y col en lugar de notación A1
-                                        # columna: 1 = Coaching 1 (columna B), 2 = Coaching 2 (columna C), etc.
-                                        columna = bimestre_num + 1  # +1 porque la columna A es el Auditado
-                                        
-                                        # Actualizar la celda usando update_cell (método más seguro)
+                                        columna = bimestre_num + 1
                                         ws_control.update_cell(fila_auditado, columna, str(fecha))
                                         
                                         st.success(f"✅ CONTROL_COACHINGS actualizado: {st.session_state.selected_auditado} - Coaching {bimestre_num} = {fecha}")
                                         
-                                else:
-                                    st.warning("⚠️ No se pudo determinar el bimestre")
-                                    
                             except Exception as e:
                                 st.error(f"❌ Error en CONTROL_COACHINGS: {e}")
                             
@@ -654,7 +639,6 @@ if seleccion == "📝 Nuevo Coaching":
                             # =========================================================
                             
                             try:
-                                # Obtener email del auditado
                                 email_auditado = None
                                 if not df_auditados.empty and "Email" in df_auditados.columns:
                                     email_row = df_auditados[df_auditados["Auditado"] == st.session_state.selected_auditado]
@@ -662,26 +646,8 @@ if seleccion == "📝 Nuevo Coaching":
                                         email_auditado = email_row["Email"].iloc[0]
                                 
                                 if email_auditado:
-                                    # Construir mensaje
                                     categorias_texto = ", ".join(categorias_mejorar) if categorias_mejorar else "No hay categorías a mejorar"
-                                    
-                                    if score >= 85:
-                                        emoji = "🏆 Excelente"
-                                    elif score >= 70:
-                                        emoji = "📊 Buen desempeño"
-                                    else:
-                                        emoji = "📈 Área de oportunidad"
-                                    
-                                    # Aquí llamarías a la función de email
-                                    # Por ahora solo mostramos en consola
                                     st.info(f"📧 Email a {email_auditado}: Score {score:.1f}% - {categorias_texto}")
-                                    
-                                    # Si tienes configurado el webhook, descomenta esto:
-                                    # import requests
-                                    # webhook_url = "TU_WEBHOOK_URL"
-                                    # payload = {...}
-                                    # requests.post(webhook_url, json=payload)
-                                    
                                 else:
                                     st.warning(f"⚠️ No se encontró email para el auditado: {st.session_state.selected_auditado}")
                                     
@@ -705,15 +671,15 @@ if seleccion == "📝 Nuevo Coaching":
                             else:
                                 st.success("🎯 ¡No hay categorías a mejorar!")
 
-                            # Reiniciar formulario
+                            # Reiniciar formulario - SIN rerun
                             st.session_state.form_id += 1
                             st.session_state.selected_auditor = ""
                             st.session_state.selected_empresa = ""
                             st.session_state.selected_auditado = ""
                             st.session_state.selected_localidad = ""
                             
-                            time.sleep(1)
-                            st.experimental_rerun()
+                            # NO usar rerun aquí - el usuario puede seguir navegando
+                            
                         else:
                             st.error("❌ Error guardando en RESPUESTAS")
     else:
@@ -858,7 +824,7 @@ elif seleccion == "📊 Dashboard":
     score_preguntas["Score"] = (score_preguntas["Puntaje Final"] / score_preguntas["Puntos Máximo"] * 100).round(2)
     score_preguntas = score_preguntas.sort_values("Score", ascending=False)
 
-        # =========================================================
+    # =========================================================
     # KPIs PRINCIPALES
     # =========================================================
 
@@ -1332,22 +1298,18 @@ elif seleccion == "🎯 Categorías a Mejorar":
     df_respuestas["Bimestre_Nombre"] = df_respuestas["Bimestre"].apply(obtener_nombre_bimestre)
 
     # =========================================================
-    # FILTROS
+    # FILTROS - ELIMINADO EL FILTRO DE AUDITOR
     # =========================================================
 
     st.subheader("🔎 Filtros")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     with col1:
-        auditores_filtro = ["Todos"] + sorted(df_resumen["Auditor"].dropna().unique().tolist())
-        auditor_seleccionado = st.selectbox("👤 Auditor", auditores_filtro, key="mejora_auditor")
-
-    with col2:
         auditados_filtro = ["Todos"] + sorted(df_resumen["Auditado"].dropna().unique().tolist())
         auditado_seleccionado = st.selectbox("👤 Auditado", auditados_filtro, key="mejora_auditado")
 
-    with col3:
+    with col2:
         bimestres_filtro = ["Todos"] + sorted(df_resumen["Bimestre_Nombre"].dropna().unique().tolist())
         bimestre_seleccionado = st.selectbox("📅 Coaching a analizar", bimestres_filtro, key="mejora_bimestre")
 
@@ -1358,9 +1320,6 @@ elif seleccion == "🎯 Categorías a Mejorar":
     # =========================================================
 
     df_filtrado = df_resumen.copy()
-
-    if auditor_seleccionado != "Todos":
-        df_filtrado = df_filtrado[df_filtrado["Auditor"] == auditor_seleccionado]
 
     if auditado_seleccionado != "Todos":
         df_filtrado = df_filtrado[df_filtrado["Auditado"] == auditado_seleccionado]
@@ -1400,8 +1359,6 @@ elif seleccion == "🎯 Categorías a Mejorar":
     df_anterior = df_resumen[
         (df_resumen["Bimestre"] == bimestre_anterior_num)
     ]
-    if auditor_seleccionado != "Todos":
-        df_anterior = df_anterior[df_anterior["Auditor"] == auditor_seleccionado]
     if auditado_seleccionado != "Todos":
         df_anterior = df_anterior[df_anterior["Auditado"] == auditado_seleccionado]
 
@@ -1463,11 +1420,10 @@ elif seleccion == "🎯 Categorías a Mejorar":
         return categorias_raw
 
     # =========================================================
-    # OBTENER CATEGORÍAS DEL COACHING ANTERIOR
+    # OBTENER CATEGORÍAS A MEJORAR DEL COACHING ANTERIOR
     # =========================================================
     
-    # Obtener auditor y auditado del filtro
-    auditor_filtro_val = auditor_seleccionado if auditor_seleccionado != "Todos" else None
+    # Obtener auditado del filtro
     auditado_filtro_val = auditado_seleccionado if auditado_seleccionado != "Todos" else None
     
     if auditado_filtro_val is None:
@@ -1477,12 +1433,12 @@ elif seleccion == "🎯 Categorías a Mejorar":
             st.stop()
         auditado_filtro_val = auditados_disponibles[0]
     
-    if auditor_filtro_val is None:
-        auditores_disponibles = df_actual["Auditor"].dropna().unique().tolist()
-        if not auditores_disponibles:
-            st.warning("No hay auditores disponibles")
-            st.stop()
-        auditor_filtro_val = auditores_disponibles[0]
+    # Obtener el auditor del coaching anterior (para filtrar respuestas)
+    auditores_disponibles = df_anterior["Auditor"].dropna().unique().tolist()
+    if not auditores_disponibles:
+        st.warning("No hay auditores disponibles en el coaching anterior")
+        st.stop()
+    auditor_filtro_val = auditores_disponibles[0]
 
     # =========================================================
     # OBTENER CATEGORÍAS A MEJORAR DEL COACHING ANTERIOR
@@ -1511,8 +1467,10 @@ elif seleccion == "🎯 Categorías a Mejorar":
         )
         if score_anterior is not None:
             categorias_anterior[categoria] = score_anterior
+        else:
+            categorias_anterior[categoria] = 0
         
-        # Score en el coaching seleccionado
+        # Score en el coaching seleccionado (SIEMPRE buscar, aunque no sea categoría a mejorar)
         score_actual = calcular_score_categoria(
             auditor_filtro_val, 
             auditado_filtro_val, 
@@ -1522,7 +1480,7 @@ elif seleccion == "🎯 Categorías a Mejorar":
         if score_actual is not None:
             categorias_actual[categoria] = score_actual
         else:
-            categorias_actual[categoria] = None
+            categorias_actual[categoria] = 0  # Si no existe, asumir 0%
 
     # =========================================================
     # CREAR TABLA DE COMPARACIÓN
@@ -1534,46 +1492,38 @@ elif seleccion == "🎯 Categorías a Mejorar":
 
     for categoria in categorias_anterior_list:
         score_anterior = categorias_anterior.get(categoria, 0)
-        score_actual = categorias_actual.get(categoria)
+        score_actual = categorias_actual.get(categoria, 0)
         
-        if score_actual is None:
-            # La categoría ya no está en el coaching actual (se resolvió)
-            estado = "✅ Resuelta"
-            color_estado = "#22c55e"
-            cambio = "N/A"
-            actual_str = "N/A"
-        else:
-            diferencia = score_actual - score_anterior
-            
-            if diferencia > 0:
-                if score_actual >= 75:
-                    estado = "✅ Mejoró"
-                    color_estado = "#22c55e"
-                else:
-                    estado = "🟡 En Proceso"
-                    color_estado = "#eab308"
-                cambio = f"+{diferencia:.1f}%"
-            elif diferencia < 0:
-                estado = "🔴 Empeoró"
-                color_estado = "#ef4444"
-                cambio = f"{diferencia:.1f}%"
+        diferencia = score_actual - score_anterior
+        
+        if diferencia > 0:
+            if score_actual >= 75:
+                estado = "✅ Mejoró"
+                color_estado = "#22c55e"
             else:
-                estado = "🟡 Igual"
+                estado = "🟡 En Proceso"
                 color_estado = "#eab308"
-                cambio = "0%"
-            actual_str = f"{score_actual:.1f}%"
+            cambio = f"+{diferencia:.1f}%"
+        elif diferencia < 0:
+            estado = "🔴 Empeoró"
+            color_estado = "#ef4444"
+            cambio = f"{diferencia:.1f}%"
+        else:
+            estado = "🟡 Igual"
+            color_estado = "#eab308"
+            cambio = "0%"
         
         tabla_comparacion.append({
             "Categoría": categoria,
             "Anterior": f"{score_anterior:.1f}%",
-            "Actual": actual_str,
+            "Actual": f"{score_actual:.1f}%",
             "Cambio": cambio,
             "Estado": estado,
             "color": color_estado
         })
 
-    # Ordenar
-    orden_estado = {"🔴 Empeoró": 0, "🟡 En Proceso": 1, "🟡 Igual": 2, "✅ Mejoró": 3, "✅ Resuelta": 4}
+    # Ordenar: primero las que empeoraron, luego en proceso, luego igual, luego mejoró
+    orden_estado = {"🔴 Empeoró": 0, "🟡 En Proceso": 1, "🟡 Igual": 2, "✅ Mejoró": 3}
     tabla_comparacion.sort(key=lambda x: orden_estado.get(x["Estado"], 5))
 
     # =========================================================
@@ -1601,10 +1551,6 @@ elif seleccion == "🎯 Categorías a Mejorar":
         )
 
     # =========================================================
-    # CATEGORÍAS ACTUALES (expander)
-    # =========================================================
-
-        # =========================================================
     # CATEGORÍAS ACTUALES (expander) - CORREGIDO
     # =========================================================
 
@@ -1658,7 +1604,7 @@ elif seleccion == "🎯 Categorías a Mejorar":
         else:
             st.success("✅ No hay categorías a mejorar en el coaching actual")
 
-        # Resumen
+    # Resumen
     st.divider()
     
     total = len(tabla_comparacion)
@@ -1666,10 +1612,8 @@ elif seleccion == "🎯 Categorías a Mejorar":
     en_proceso = sum(1 for x in tabla_comparacion if x["Estado"] == "🟡 En Proceso")
     empeoraron = sum(1 for x in tabla_comparacion if x["Estado"] == "🔴 Empeoró")
     igual = sum(1 for x in tabla_comparacion if x["Estado"] == "🟡 Igual")
-    resueltas = sum(1 for x in tabla_comparacion if x["Estado"] == "✅ Resuelta")
-    nuevas = sum(1 for x in tabla_comparacion if x["Estado"] == "🆕 Nueva")
     
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("📋 Total", total)
     with col2:
@@ -1678,10 +1622,6 @@ elif seleccion == "🎯 Categorías a Mejorar":
         st.metric("🟡 En Proceso", en_proceso)
     with col4:
         st.metric("🔴 Empeoró", empeoraron)
-    with col5:
-        st.metric("🟡 Igual", igual)
-    with col6:
-        st.metric("✅ Resuelta", resueltas)
 
 # =========================================================
 # HISTORIAL
