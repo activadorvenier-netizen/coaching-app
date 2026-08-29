@@ -1376,23 +1376,38 @@ elif seleccion == "🎯 Categorías a Mejorar":
     
     def calcular_score_categoria(auditor, auditado, bimestre, categoria):
         """Calcula el score de una categoría específica para un coaching"""
+        import unicodedata
+        
+        def normalizar(texto):
+            texto = str(texto).lower()
+            texto = ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
+            return texto.strip()
+        
+        # Normalizar la categoría para buscar
+        categoria_norm = normalizar(categoria)
+        
         df_filtro = df_respuestas[
             (df_respuestas["Auditor"] == auditor) &
             (df_respuestas["Auditado"] == auditado) &
-            (df_respuestas["Bimestre"] == bimestre) &
-            (df_respuestas[columna_categoria_respuestas] == categoria)
+            (df_respuestas["Bimestre"] == bimestre)
         ]
         
         if df_filtro.empty:
             return None
         
-        total_puntaje = df_filtro["Puntaje Final"].sum()
-        total_maximo = df_filtro["Puntos Máximo"].sum()
+        # Buscar por categoría normalizada
+        for _, row in df_filtro.iterrows():
+            cat_respuesta = normalizar(row[columna_categoria_respuestas])
+            if cat_respuesta == categoria_norm:
+                # Encontramos la categoría, calcular score
+                df_categoria = df_filtro[df_filtro[columna_categoria_respuestas] == row[columna_categoria_respuestas]]
+                total_puntaje = df_categoria["Puntaje Final"].sum()
+                total_maximo = df_categoria["Puntos Máximo"].sum()
+                if total_maximo == 0:
+                    return 0
+                return (total_puntaje / total_maximo * 100)
         
-        if total_maximo == 0:
-            return 0
-        
-        return (total_puntaje / total_maximo * 100)
+        return None
 
     # =========================================================
     # EXTRAER CATEGORÍAS DEL COACHING ANTERIOR
@@ -1400,6 +1415,13 @@ elif seleccion == "🎯 Categorías a Mejorar":
     
     def extraer_categorias(df):
         """Extrae los nombres de las categorías de la columna"""
+        import unicodedata
+        
+        def normalizar(texto):
+            texto = str(texto).lower()
+            texto = ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
+            return texto.strip()
+        
         categorias_raw = []
         for _, row in df.iterrows():
             categorias_str = row[columna_categorias]
@@ -1409,14 +1431,13 @@ elif seleccion == "🎯 Categorías a Mejorar":
                 item = item.strip()
                 if not item:
                     continue
-                # Extraer solo el nombre (sin porcentaje)
                 import re
                 match = re.search(r'\(([\d.]+)%\)', item)
                 if match:
                     nombre = item[:match.start()].strip()
                 else:
                     nombre = item
-                nombre = nombre.strip()
+                nombre = normalizar(nombre)
                 if nombre and nombre not in categorias_raw:
                     categorias_raw.append(nombre)
         return categorias_raw
