@@ -1298,7 +1298,7 @@ elif seleccion == "🎯 Categorías a Mejorar":
     df_respuestas["Bimestre_Nombre"] = df_respuestas["Bimestre"].apply(obtener_nombre_bimestre)
 
     # =========================================================
-    # FILTROS - ELIMINADO EL FILTRO DE AUDITOR
+    # FILTROS - SOLO 2
     # =========================================================
 
     st.subheader("🔎 Filtros")
@@ -1376,27 +1376,18 @@ elif seleccion == "🎯 Categorías a Mejorar":
     
     def calcular_score_categoria(auditor, auditado, bimestre, categoria):
         """Calcula el score de una categoría específica para un coaching"""
-        # Filtrar respuestas del coaching específico
         df_filtro = df_respuestas[
             (df_respuestas["Auditor"] == auditor) &
             (df_respuestas["Auditado"] == auditado) &
-            (df_respuestas["Bimestre"] == bimestre)
+            (df_respuestas["Bimestre"] == bimestre) &
+            (df_respuestas[columna_categoria_respuestas] == categoria)
         ]
         
         if df_filtro.empty:
             return None
         
-        # Ahora filtrar por categoría (usando la columna correcta)
-        # IMPORTANTE: La columna en RESPUESTAS se llama "Categoría" (sin acento)
-        columna_cat = "Categoría" if "Categoría" in df_filtro.columns else "Categorías"
-        
-        df_categoria = df_filtro[df_filtro[columna_cat] == categoria]
-        
-        if df_categoria.empty:
-            return None
-        
-        total_puntaje = df_categoria["Puntaje Final"].sum()
-        total_maximo = df_categoria["Puntos Máximo"].sum()
+        total_puntaje = df_filtro["Puntaje Final"].sum()
+        total_maximo = df_filtro["Puntos Máximo"].sum()
         
         if total_maximo == 0:
             return 0
@@ -1418,13 +1409,15 @@ elif seleccion == "🎯 Categorías a Mejorar":
                 item = item.strip()
                 if not item:
                     continue
+                # Extraer solo el nombre (sin porcentaje)
                 import re
                 match = re.search(r'\(([\d.]+)%\)', item)
                 if match:
                     nombre = item[:match.start()].strip()
                 else:
                     nombre = item
-                if nombre not in categorias_raw:
+                nombre = nombre.strip()
+                if nombre and nombre not in categorias_raw:
                     categorias_raw.append(nombre)
         return categorias_raw
 
@@ -1474,22 +1467,16 @@ elif seleccion == "🎯 Categorías a Mejorar":
             bimestre_anterior_num, 
             categoria
         )
-        if score_anterior is not None:
-            categorias_anterior[categoria] = score_anterior
-        else:
-            categorias_anterior[categoria] = 0
+        categorias_anterior[categoria] = score_anterior if score_anterior is not None else 0
         
-        # Score en el coaching seleccionado (SIEMPRE buscar, aunque no sea categoría a mejorar)
+        # Score en el coaching seleccionado
         score_actual = calcular_score_categoria(
             auditor_filtro_val, 
             auditado_filtro_val, 
             bimestre_actual_num, 
             categoria
         )
-        if score_actual is not None:
-            categorias_actual[categoria] = score_actual
-        else:
-            categorias_actual[categoria] = 0  # Si no existe, asumir 0%
+        categorias_actual[categoria] = score_actual if score_actual is not None else 0
 
     # =========================================================
     # CREAR TABLA DE COMPARACIÓN
@@ -1500,8 +1487,8 @@ elif seleccion == "🎯 Categorías a Mejorar":
     tabla_comparacion = []
 
     for categoria in categorias_anterior_list:
-        score_anterior = categorias_anterior.get(categoria, 0)
-        score_actual = categorias_actual.get(categoria, 0)
+        score_anterior = categorias_anterior[categoria]
+        score_actual = categorias_actual[categoria]
         
         diferencia = score_actual - score_anterior
         
@@ -1531,7 +1518,7 @@ elif seleccion == "🎯 Categorías a Mejorar":
             "color": color_estado
         })
 
-    # Ordenar: primero las que empeoraron, luego en proceso, luego igual, luego mejoró
+    # Ordenar
     orden_estado = {"🔴 Empeoró": 0, "🟡 En Proceso": 1, "🟡 Igual": 2, "✅ Mejoró": 3}
     tabla_comparacion.sort(key=lambda x: orden_estado.get(x["Estado"], 5))
 
@@ -1560,7 +1547,7 @@ elif seleccion == "🎯 Categorías a Mejorar":
         )
 
     # =========================================================
-    # CATEGORÍAS ACTUALES (expander) - CORREGIDO
+    # CATEGORÍAS ACTUALES (expander)
     # =========================================================
 
     st.divider()
@@ -1581,9 +1568,7 @@ elif seleccion == "🎯 Categorías a Mejorar":
     
     with st.expander("📋 Categorías a Mejorar del Coaching Actual", expanded=False):
         if categorias_con_score:
-            # Ordenar por score de menor a mayor (las más críticas primero)
             for categoria, score in sorted(categorias_con_score.items(), key=lambda x: x[1]):
-                # Verificar si es una categoría nueva (no estaba en el coaching anterior)
                 es_nueva = categoria not in categorias_anterior_list
                 
                 if es_nueva:
@@ -1606,7 +1591,6 @@ elif seleccion == "🎯 Categorías a Mejorar":
                     )
             st.caption(f"📌 Total de categorías a mejorar en el coaching actual: {len(categorias_con_score)}")
             
-            # Mostrar también las categorías que estaban en el coaching anterior pero ya no están (resueltas)
             resueltas = [c for c in categorias_anterior_list if c not in categorias_actuales_completas]
             if resueltas:
                 st.caption(f"✅ Categorías resueltas (ya no están en el coaching actual): {', '.join(resueltas)}")
